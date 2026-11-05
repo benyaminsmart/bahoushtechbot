@@ -15,26 +15,37 @@ from telegram.ext import (
 from src.handlers.start import start_command
 from src.handlers.help import help_command
 from src.handlers.details import (
-    show_services_list,
-    show_projects_list,
-    show_service_detail,
-    show_project_detail,
-    show_media,
-    show_about,
-    show_contact,
+    show_services_list, show_projects_list, show_service_detail,
+    show_project_detail, show_media, show_about, show_contact,
 )
 from src.handlers.contact_form import contact_form_handler
 from src.handlers.project_form import project_form_handler
 from src.handlers.mr_computer import mr_computer_handler
+from src.handlers.admin import admin_panel, start_broadcast, execute_broadcast
 from src.keyboards.main_menu import main_menu_reply_keyboard
 from src.utils.config import config
 from src.utils.logger import log
+from src.database.db import init_db, add_user
+
+
+async def on_startup(app: Application) -> None:
+    """Runs when bot starts."""
+    await init_db()
 
 
 async def handle_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle text messages sent from the Reply Keyboard."""
+    """Handle text messages."""
     text = update.message.text
     
+    # Check if admin is in broadcast mode
+    if context.user_data.get('broadcast_mode'):
+        await execute_broadcast(update, context)
+        return
+    
+    # Register user in DB on first message
+    user = update.effective_user
+    await add_user(user.id, user.username or "", user.first_name or "")
+
     if text == "🛠 Services":
         await show_services_list(update, context)
     elif text == "💼 Projects":
@@ -46,7 +57,6 @@ async def handle_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     elif text == "📞 Contact":
         await show_contact(update, context)
     else:
-        # If it's none of the above and not caught by conversations
         await update.message.reply_text(
             "🤖 I didn't understand that. Please use the menu below.",
             reply_markup=main_menu_reply_keyboard()
@@ -54,7 +64,7 @@ async def handle_menu_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle inline keyboard callbacks."""
+    """Handle inline callbacks."""
     query = update.callback_query
     data = query.data
     
@@ -66,6 +76,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await show_services_list(update, context)
     elif data == "back_projects":
         await show_projects_list(update, context)
+    elif data == "admin_broadcast":
+        await start_broadcast(update, context)
     elif data == "ignore":
         await query.answer()
     elif data == "menu_main":
@@ -75,29 +87,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Log errors."""
     log.error(f"Update {update} caused error {context.error}")
 
 
 def main() -> None:
-    """Start the bot."""
     print("⏳ 1. Validating config...")
     config.validate()
     
     print("⏳ 2. Building application...")
-    app = Application.builder().token(config.BOT_TOKEN).build()
+    app = Application.builder().token(config.BOT_TOKEN).post_init(on_startup).build()
 
     print("⏳ 3. Adding handlers...")
-    # 1. Add ConversationHandlers FIRST (so they take priority)
     app.add_handler(mr_computer_handler)
     app.add_handler(contact_form_handler)
     app.add_handler(project_form_handler)
     
-    # 2. Add standard commands
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("admin", admin_panel))
     
-    # 3. Add text and callback handlers
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu_text))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_error_handler(error_handler)
