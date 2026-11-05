@@ -1,0 +1,36 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Data & logs
+data/*.db
+data/*.sqlite*
+logs/*.log
+logs/*
+!logs/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Termux / local
+*.bak
+*.tmp
