@@ -16,7 +16,7 @@ def main_menu_reply_keyboard() -> ReplyKeyboardMarkup:
         [KeyboardButton("🛠 Services"), KeyboardButton("💼 Projects")],
         [KeyboardButton("🧠 Mr. Computer"), KeyboardButton("🚀 Start Project")],
         [KeyboardButton("📺 Bahoush Media"), KeyboardButton("ℹ️ About Us")],
-        [KeyboardButton("📞 Contact")],
+        [KeyboardButton("📞 Contact"), KeyboardButton("🏠 Main Menu")], # Added Main Menu
     ]
     return ReplyKeyboardMarkup(
         keyboard,
@@ -40,9 +40,8 @@ def services_inline_keyboard() -> InlineKeyboardMarkup:
 
 
 def projects_inline_keyboard() -> InlineKeyboardMarkup:
-    """Inline keyboard for the 4 main projects (excluding Media & AI)."""
+    """Inline keyboard for the 4 main projects."""
     main_projects = ["platform-x", "word-smart", "bahoushguard", "staysync"]
-    
     keyboard = []
     for project in PROJECTS:
         if project["id"] in main_projects:
